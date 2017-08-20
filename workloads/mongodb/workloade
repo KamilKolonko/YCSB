@@ -26,9 +26,13 @@
 # instead interspersed with posts from lots of other threads. The way the YCSB client works is that it will pick a start
 # key, and then request a number of records; this works fine even for hashed insertion.
 
-recordcount=1000
+workload=com.yahoo.ycsb.workloads.BenchmarkWorkload
+
+# MONGO DB
+db=com.yahoo.ycsb.db.AsyncMongoDbClient
+
+recordcount=4156682
 operationcount=1000
-workload=com.yahoo.ycsb.workloads.CoreWorkload
 
 readallfields=true
 
