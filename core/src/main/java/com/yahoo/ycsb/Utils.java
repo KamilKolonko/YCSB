@@ -17,13 +17,13 @@
 
 package com.yahoo.ycsb;
 
+import com.yahoo.ycsb.model.Entity;
+
+import java.io.*;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 /**
  * Utility functions.
@@ -225,5 +225,64 @@ public final class Utils {
       map.put(bean.getName().replace(" ", "_"), measurements);
     }
     return map;
+  }
+
+  private static File[] readCsvFilesInDir(String path) {
+    File dir = new File(path);
+
+    return dir.listFiles(new FilenameFilter() {
+      public boolean accept(File dir, String filename) {
+        return filename.endsWith(".csv");
+      }
+    });
+  }
+
+  private static String getFilenameWithoutExtension(File file) {
+    String fileName = file.getName();
+    int pos = fileName.lastIndexOf(".");
+    if (pos > 0) {
+      fileName = fileName.substring(0, pos);
+    }
+    return fileName;
+  }
+
+  private static Map.Entry<String[], List<Entity>> readEntitiesFromFile(File file) {
+    List<Entity> data = new ArrayList<>();
+
+    String tableName = "\"" + getFilenameWithoutExtension(file) + "\"";
+    try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+      String line;
+      String[] tableHeader = addQuotes(br.readLine().split(","));
+      while ((line = br.readLine()) != null) {
+        data.add(new Entity(tableName, line.split(",")));
+      }
+      return new AbstractMap.SimpleEntry<String[], List<Entity>>(tableHeader, data);
+    } catch (FileNotFoundException e) {
+      System.err.println("No file exists under specified path - " + file.getAbsolutePath());
+      e.printStackTrace();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    return new AbstractMap.SimpleEntry<String[], List<Entity>>(new String[]{}, Collections.<Entity>emptyList());
+  }
+
+  private static String[] addQuotes(String[] values){
+    String[] result = new String[values.length];
+    for (int i = 0; i < values.length; i++) {
+      result[i] = "\"" + values[i] + "\"";
+    }
+    return result;
+  }
+
+  public static List<Entity> readDatabases(String directory, Map<String, String[]> tableHeaders) {
+    List<Entity> entities = new ArrayList<>();
+    for (File file : readCsvFilesInDir(directory)) {
+      Map.Entry<String[], List<Entity>> table = readEntitiesFromFile(file);
+      if (!table.getValue().isEmpty()) {
+        entities.addAll(table.getValue());
+        tableHeaders.put(table.getValue().get(0).getTableName(), table.getKey());
+      }
+    }
+    return entities;
   }
 }
